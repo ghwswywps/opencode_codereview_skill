@@ -5,7 +5,7 @@
 ## 功能介绍
 
 ### browse MCP 服务
-- 智能抓取需要鉴权的 Wiki 页面（如途虎内部 Wiki）
+- 智能抓取需要鉴权的 Wiki 页面（如内部 Wiki）
 - 自动检测登录状态，鉴权过期时弹窗提示扫码登录
 - 登录凭证本地缓存，无需重复登录
 
@@ -26,25 +26,25 @@
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<your-username>/skill_cr/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ghwswywps/opencode_codereview_skill/master/install.sh | bash
 ```
 
 或使用 wget：
 
 ```bash
-wget -qO- https://raw.githubusercontent.com/<your-username>/skill_cr/main/install.sh | bash
+wget -qO- https://raw.githubusercontent.com/ghwswywps/opencode_codereview_skill/master/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-curl -o install.ps1 https://raw.githubusercontent.com/<your-username>/skill_cr/main/install.ps1 && powershell -ExecutionPolicy Bypass -File install.ps1
+curl -o install.ps1 https://raw.githubusercontent.com/ghwswywps/opencode_codereview_skill/master/install.ps1 && powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 或者直接在 PowerShell 中运行：
 
 ```powershell
-irm https://raw.githubusercontent.com/<your-username>/skill_cr/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/ghwswywps/opencode_codereview_skill/master/install.ps1 | iex
 ```
 
 ## 手动安装
@@ -54,7 +54,7 @@ irm https://raw.githubusercontent.com/<your-username>/skill_cr/main/install.ps1 
 ### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/<your-username>/skill_cr.git
+git clone https://github.com/ghwswywps/opencode_codereview_skill/master.git
 cd skill_cr
 ```
 
