@@ -107,7 +107,7 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
-    name: "fetch_wiki_page",
+    name: "fetch_page",
     description: "抓取途虎 Wiki 等需要鉴权的网页。如果鉴权过期，会自动弹窗要求用户扫码登录。",
     inputSchema: {
       type: "object",
@@ -208,7 +208,7 @@ async function fetchPage(url, headless) {
 
 // ── 工具请求处理 ─────────────────────────────────────────────
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== "fetch_wiki_page") {
+  if (request.params.name !== "fetch_page") {
     throw new Error("未知工具");
   }
 
