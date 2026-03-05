@@ -312,4 +312,4 @@ Write-Host ""
 Write-Host "✅ 安装完成！" -ForegroundColor Green
 Write-Host "👉 MCP 安装路径: $INSTALL_DIR" -ForegroundColor Green
 Write-Host "👉 技能配置路径: $SKILL_DIR\SKILL.md" -ForegroundColor Green
-Write-Host "💡 现在你可以在 OpenCode 中直接对我说: `"帮我用 open_cr 审核一下这段代码，需求在 <Wiki链接>`"" -ForegroundColor Green
+Write-Host "💡 现在你可以在 OpenCode 中直接对我说: `"帮我用 open_cr 审核一下这段代码，需求在 <Wiki链接>, 代码在 <代码链接LIST>`"" -ForegroundColor Green
