@@ -4,16 +4,137 @@ set -e
 
 echo "🚀 开始安装 browse MCP 与 Code Review 技能..."
 
-# 1. 环境检查
+# 1. 环境检查 & 自动安装 Node.js
+NODE_VERSION="20.11.0"
+
+install_node_via_nvm() {
+    echo "📦 正在通过 nvm (国内镜像) 安装 Node.js v$NODE_VERSION..."
+    
+    # 设置 nvm 国内镜像
+    export NVM_NODEJS_ORG_MIRROR="https://npmmirror.com/mirrors/node"
+    
+    # 检查是否已安装 nvm
+    if [ -d "$HOME/.nvm" ]; then
+        echo "  ✅ 检测到已安装 nvm"
+    else
+        echo "  ⬇️ 正在从 gitee 镜像安装 nvm..."
+        # 使用 gitee 镜像安装 nvm
+        git clone https://gitee.com/mirrors/nvm.git "$HOME/.nvm" --depth 1
+        
+        # 配置 nvm 环境变量
+        if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            . "$HOME/.nvm/nvm.sh"
+        fi
+        
+        # 添加到 shell 配置文件
+        for rc_file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+            if [ -f "$rc_file" ]; then
+                if ! grep -q 'NVM_DIR' "$rc_file"; then
+                    echo "" >> "$rc_file"
+                    echo 'export NVM_DIR="$HOME/.nvm"' >> "$rc_file"
+                    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> "$rc_file"
+                    echo "  ✅ 已将 nvm 配置添加到 $rc_file"
+                fi
+            fi
+        done
+    fi
+    
+    # 加载 nvm
+    if [ -s "$HOME/.nvm/nvm.sh" ]; then
+        . "$HOME/.nvm/nvm.sh"
+    else
+        echo "  ❌ nvm 加载失败"
+        return 1
+    fi
+    
+    # 安装 Node.js
+    echo "  ⬇️ 正在安装 Node.js v$NODE_VERSION (使用 npmmirror 镜像)..."
+    nvm install "$NODE_VERSION"
+    nvm use "$NODE_VERSION"
+    nvm alias default "$NODE_VERSION"
+    
+    echo "  ✅ Node.js 安装完成！"
+    return 0
+}
+
+install_node_via_binary() {
+    echo "📦 正在通过二进制包 (国内镜像) 安装 Node.js v$NODE_VERSION..."
+    
+    # 检测系统和架构
+    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    
+    case $ARCH in
+        x86_64)  ARCH="x64" ;;
+        aarch64) ARCH="arm64" ;;
+        armv7l)  ARCH="armv7l" ;;
+        *)       echo "❌ 不支持的架构: $ARCH"; return 1 ;;
+    esac
+    
+    NODE_URL="https://npmmirror.com/mirrors/node/v$NODE_VERSION/node-v$NODE_VERSION-$OS-$ARCH.tar.gz"
+    INSTALL_DIR="$HOME/.local/node"
+    
+    echo "  ⬇️ 正在从 npmmirror.com 下载 Node.js..."
+    mkdir -p "$HOME/.local"
+    
+    # 下载并解压
+    curl -fsSL "$NODE_URL" | tar -xzf - -C "$HOME/.local"
+    mv "$HOME/.local/node-v$NODE_VERSION-$OS-$ARCH" "$INSTALL_DIR"
+    
+    # 添加到 PATH
+    export PATH="$INSTALL_DIR/bin:$PATH"
+    
+    # 添加到 shell 配置文件
+    for rc_file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
+        if [ -f "$rc_file" ]; then
+            if ! grep -q 'NODE_HOME' "$rc_file"; then
+                echo "" >> "$rc_file"
+                echo 'export NODE_HOME="$HOME/.local/node"' >> "$rc_file"
+                echo 'export PATH="$NODE_HOME/bin:$PATH"' >> "$rc_file"
+                echo "  ✅ 已将 Node.js 配置添加到 $rc_file"
+            fi
+        fi
+    done
+    
+    echo "  ✅ Node.js 安装完成！"
+    return 0
+}
+
 if ! command -v node &> /dev/null; then
-    echo "❌ 错误: 未检测到 Node.js。请先安装 Node.js。"
-    exit 1
+    echo "⚠️ 未检测到 Node.js，正在尝试自动安装..."
+    
+    # 优先使用 nvm 安装 (更灵活)
+    if command -v git &> /dev/null; then
+        if install_node_via_nvm; then
+            :
+        elif ! install_node_via_binary; then
+            echo "❌ 自动安装 Node.js 失败"
+            echo "💡 请手动安装 Node.js: https://npmmirror.com/mirrors/node/"
+            exit 1
+        fi
+    elif ! install_node_via_binary; then
+        echo "❌ 自动安装 Node.js 失败"
+        echo "💡 请手动安装 Node.js: https://npmmirror.com/mirrors/node/"
+        exit 1
+    fi
+    
+    # 再次检查
+    if ! command -v node &> /dev/null; then
+        echo "❌ Node.js 安装后仍无法检测到，请重新打开终端后再试"
+        exit 1
+    fi
 fi
 
 if ! command -v npm &> /dev/null; then
-    echo "❌ 错误: 未检测到 npm。请先安装 npm。"
+    echo "❌ 错误: 未检测到 npm。请检查 Node.js 安装是否完整。"
     exit 1
 fi
+
+# 配置 npm 使用国内镜像
+echo "🔧 配置 npm 使用国内镜像 (npmmirror)..."
+npm config set registry https://registry.npmmirror.com --silent 2>/dev/null || true
+
+echo "✅ 环境检查通过: Node.js $(node -v), npm $(npm -v)"
 
 # 2. 定义路径
 INSTALL_DIR="$HOME/.opencode-mcp/browse"

@@ -2,16 +2,97 @@
 
 Write-Host "🚀 开始安装 browse MCP 与 Code Review 技能..." -ForegroundColor Cyan
 
-# 1. 环境检查
+# 1. 环境检查 & 自动安装 Node.js
+function Install-NodeJS {
+    param(
+        [string]$Version = "20.11.0"
+    )
+    
+    Write-Host "📦 正在通过国内镜像安装 Node.js v$Version..." -ForegroundColor Yellow
+    
+    # 检测系统架构
+    $arch = if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
+    $nodeUrl = "https://npmmirror.com/mirrors/node/v$Version/node-v$Version-win-$arch.zip"
+    $tempDir = [System.IO.Path]::GetTempPath()
+    $zipFile = Join-Path $tempDir "node.zip"
+    $extractDir = Join-Path $tempDir "node-extract"
+    $installDir = Join-Path $env:LOCALAPPDATA "NodeJS"
+    
+    try {
+        # 下载 Node.js
+        Write-Host "  ⬇️ 正在从 npmmirror.com 下载 Node.js..." -ForegroundColor Gray
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        Invoke-WebRequest -Uri $nodeUrl -OutFile $zipFile -UseBasicParsing
+        
+        # 解压
+        Write-Host "  📂 正在解压..." -ForegroundColor Gray
+        if (Test-Path $extractDir) { Remove-Item $extractDir -Recurse -Force }
+        Expand-Archive -Path $zipFile -DestinationPath $extractDir -Force
+        
+        # 移动到安装目录
+        if (Test-Path $installDir) { Remove-Item $installDir -Recurse -Force }
+        Move-Item -Path (Join-Path $extractDir "node-v$Version-win-$arch") -Destination $installDir -Force
+        
+        # 添加到 PATH (用户级别)
+        $userPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+        $nodePath = $installDir
+        if ($userPath -notlike "*$nodePath*") {
+            [Environment]::SetEnvironmentVariable("PATH", "$nodePath;$userPath", "User")
+            $env:PATH = "$nodePath;$env:PATH"
+        }
+        
+        # 清理临时文件
+        Remove-Item $zipFile -Force -ErrorAction SilentlyContinue
+        Remove-Item $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+        
+        Write-Host "  ✅ Node.js 安装完成！" -ForegroundColor Green
+        return $true
+    }
+    catch {
+        Write-Host "  ❌ 自动安装失败: $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  💡 请手动安装 Node.js: https://npmmirror.com/mirrors/node/" -ForegroundColor Yellow
+        return $false
+    }
+}
+
 if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ 错误: 未检测到 Node.js。请先安装 Node.js。" -ForegroundColor Red
-    exit 1
+    Write-Host "⚠️ 未检测到 Node.js，正在尝试自动安装..." -ForegroundColor Yellow
+    
+    # 尝试使用 winget 安装 (如果可用)
+    if (Get-Command "winget" -ErrorAction SilentlyContinue) {
+        Write-Host "📦 检测到 winget，正在通过 winget 安装 Node.js..." -ForegroundColor Yellow
+        try {
+            winget install OpenJS.NodeJS.LTS --accept-source-agreements --accept-package-agreements
+            # 刷新环境变量
+            $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "User")
+        }
+        catch {
+            Write-Host "⚠️ winget 安装失败，尝试通过国内镜像手动安装..." -ForegroundColor Yellow
+            if (-not (Install-NodeJS)) { exit 1 }
+        }
+    }
+    else {
+        # 直接通过国内镜像安装
+        if (-not (Install-NodeJS)) { exit 1 }
+    }
+    
+    # 再次检查
+    if (-not (Get-Command "node" -ErrorAction SilentlyContinue)) {
+        Write-Host "❌ Node.js 安装后仍无法检测到，请重启终端后再试" -ForegroundColor Red
+        exit 1
+    }
 }
 
 if (-not (Get-Command "npm" -ErrorAction SilentlyContinue)) {
-    Write-Host "❌ 错误: 未检测到 npm。请先安装 npm。" -ForegroundColor Red
+    Write-Host "❌ 错误: 未检测到 npm。请检查 Node.js 安装是否完整。" -ForegroundColor Red
     exit 1
 }
+
+# 配置 npm 使用国内镜像
+Write-Host "🔧 配置 npm 使用国内镜像 (npmmirror)..." -ForegroundColor Yellow
+npm config set registry https://registry.npmmirror.com --silent 2>$null
+
+Write-Host "✅ 环境检查通过: Node.js $(node -v), npm $(npm -v)" -ForegroundColor Green
 
 # 2. 定义路径 (自动获取 Windows 用户目录)
 $HOME_DIR = [System.Environment]::GetFolderPath('UserProfile')
