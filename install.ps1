@@ -144,7 +144,7 @@ async function waitForLoginComplete(page) {
 
 async function fetchPage(url, headless, actions = []) {
   const hasAuth = fs.existsSync(AUTH_PATH);
-  const browser = await launchBrowser(headless);
+  const browser = await launchBrowser(false);
 
   try {
     const context = await browser.newContext(hasAuth ? { storageState: AUTH_PATH } : {});
