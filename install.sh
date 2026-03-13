@@ -1,149 +1,28 @@
 #!/bin/bash
-
 set -e
 
-echo "🚀 开始安装 browse MCP 与 Code Review 技能..."
+echo -e "\033[36m🚀 开始安装 browse MCP 与 Code Review 技能 (包含 actions 交互能力)...\033[0m"
 
-# 1. 环境检查 & 自动安装 Node.js
-NODE_VERSION="20.11.0"
-
-install_node_via_nvm() {
-    echo "📦 正在通过 nvm (国内镜像) 安装 Node.js v$NODE_VERSION..."
-    
-    # 设置 nvm 国内镜像
-    export NVM_NODEJS_ORG_MIRROR="https://npmmirror.com/mirrors/node"
-    
-    # 检查是否已安装 nvm
-    if [ -d "$HOME/.nvm" ]; then
-        echo "  ✅ 检测到已安装 nvm"
-    else
-        echo "  ⬇️ 正在从 gitee 镜像安装 nvm..."
-        # 使用 gitee 镜像安装 nvm
-        git clone https://gitee.com/mirrors/nvm.git "$HOME/.nvm" --depth 1
-        
-        # 配置 nvm 环境变量
-        if [ -s "$HOME/.nvm/nvm.sh" ]; then
-            . "$HOME/.nvm/nvm.sh"
-        fi
-        
-        # 添加到 shell 配置文件
-        for rc_file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
-            if [ -f "$rc_file" ]; then
-                if ! grep -q 'NVM_DIR' "$rc_file"; then
-                    echo "" >> "$rc_file"
-                    echo 'export NVM_DIR="$HOME/.nvm"' >> "$rc_file"
-                    echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> "$rc_file"
-                    echo "  ✅ 已将 nvm 配置添加到 $rc_file"
-                fi
-            fi
-        done
-    fi
-    
-    # 加载 nvm
-    if [ -s "$HOME/.nvm/nvm.sh" ]; then
-        . "$HOME/.nvm/nvm.sh"
-    else
-        echo "  ❌ nvm 加载失败"
-        return 1
-    fi
-    
-    # 安装 Node.js
-    echo "  ⬇️ 正在安装 Node.js v$NODE_VERSION (使用 npmmirror 镜像)..."
-    nvm install "$NODE_VERSION"
-    nvm use "$NODE_VERSION"
-    nvm alias default "$NODE_VERSION"
-    
-    echo "  ✅ Node.js 安装完成！"
-    return 0
-}
-
-install_node_via_binary() {
-    echo "📦 正在通过二进制包 (国内镜像) 安装 Node.js v$NODE_VERSION..."
-    
-    # 检测系统和架构
-    OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-    ARCH=$(uname -m)
-    
-    case $ARCH in
-        x86_64)  ARCH="x64" ;;
-        aarch64) ARCH="arm64" ;;
-        armv7l)  ARCH="armv7l" ;;
-        *)       echo "❌ 不支持的架构: $ARCH"; return 1 ;;
-    esac
-    
-    NODE_URL="https://npmmirror.com/mirrors/node/v$NODE_VERSION/node-v$NODE_VERSION-$OS-$ARCH.tar.gz"
-    INSTALL_DIR="$HOME/.local/node"
-    
-    echo "  ⬇️ 正在从 npmmirror.com 下载 Node.js..."
-    mkdir -p "$HOME/.local"
-    
-    # 下载并解压
-    curl -fsSL "$NODE_URL" | tar -xzf - -C "$HOME/.local"
-    mv "$HOME/.local/node-v$NODE_VERSION-$OS-$ARCH" "$INSTALL_DIR"
-    
-    # 添加到 PATH
-    export PATH="$INSTALL_DIR/bin:$PATH"
-    
-    # 添加到 shell 配置文件
-    for rc_file in "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; do
-        if [ -f "$rc_file" ]; then
-            if ! grep -q 'NODE_HOME' "$rc_file"; then
-                echo "" >> "$rc_file"
-                echo 'export NODE_HOME="$HOME/.local/node"' >> "$rc_file"
-                echo 'export PATH="$NODE_HOME/bin:$PATH"' >> "$rc_file"
-                echo "  ✅ 已将 Node.js 配置添加到 $rc_file"
-            fi
-        fi
-    done
-    
-    echo "  ✅ Node.js 安装完成！"
-    return 0
-}
-
+# 1. 环境检查
 if ! command -v node &> /dev/null; then
-    echo "⚠️ 未检测到 Node.js，正在尝试自动安装..."
-    
-    # 优先使用 nvm 安装 (更灵活)
-    if command -v git &> /dev/null; then
-        if install_node_via_nvm; then
-            :
-        elif ! install_node_via_binary; then
-            echo "❌ 自动安装 Node.js 失败"
-            echo "💡 请手动安装 Node.js: https://npmmirror.com/mirrors/node/"
-            exit 1
-        fi
-    elif ! install_node_via_binary; then
-        echo "❌ 自动安装 Node.js 失败"
-        echo "💡 请手动安装 Node.js: https://npmmirror.com/mirrors/node/"
-        exit 1
-    fi
-    
-    # 再次检查
-    if ! command -v node &> /dev/null; then
-        echo "❌ Node.js 安装后仍无法检测到，请重新打开终端后再试"
-        exit 1
-    fi
+    echo -e "\033[31m❌ 错误: 未检测到 Node.js。请先前往 https://nodejs.org/ 手动安装 (建议 v20+)。\033[0m"
+    exit 1
 fi
-
 if ! command -v npm &> /dev/null; then
-    echo "❌ 错误: 未检测到 npm。请检查 Node.js 安装是否完整。"
+    echo -e "\033[31m❌ 错误: 未检测到 npm。请检查 Node.js 安装是否完整。\033[0m"
     exit 1
 fi
 
-# 配置 npm 使用国内镜像
-echo "🔧 配置 npm 使用国内镜像 (npmmirror)..."
+echo -e "\033[32m✅ 环境检查通过: Node.js $(node -v), npm $(npm -v)\033[0m"
+echo -e "\033[90m🔧 配置 npm 使用国内镜像 (npmmirror)...\033[0m"
 npm config set registry https://registry.npmmirror.com --silent 2>/dev/null || true
-
-echo "✅ 环境检查通过: Node.js $(node -v), npm $(npm -v)"
 
 # 2. 定义路径
 INSTALL_DIR="$HOME/.opencode-mcp/browse"
-CONFIG_DIR="$HOME/.config/opencode"
-CONFIG_FILE="$CONFIG_DIR/opencode.json"
-SKILL_DIR="$CONFIG_DIR/skills/open_cr"
+SKILL_DIR="$HOME/.config/opencode/skills/open_cr"
 
-# 3. 创建 MCP 项目目录并写入代码
-echo "📦 初始化 MCP 服务环境..."
+# 3. 创建 MCP 项目目录
+echo -e "\033[33m📦 初始化 MCP 服务环境...\033[0m"
 mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 
@@ -151,7 +30,7 @@ cd "$INSTALL_DIR"
 cat << 'EOF' > package.json
 {
   "name": "browse",
-  "version": "6.0.0",
+  "version": "6.1.0",
   "type": "module",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.1",
@@ -170,7 +49,6 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ── 常量 & 配置 (修改版) ──────────────────────────────────────────────
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const AUTH_PATH  = path.join(__dirname, 'auth.json');
@@ -178,18 +56,9 @@ const AUTH_PATH  = path.join(__dirname, 'auth.json');
 const BROWSER_TYPE    = process.env.BROWSER_TYPE    || 'chromium';
 const BROWSER_CHANNEL = process.env.BROWSER_CHANNEL || 'chrome';
 
-// 建议将英文关键词全部改为小写，方便做忽略大小写的匹配
-const LOGIN_KEYWORDS = [
-  // 中文登录关键词
-  '企微扫码', '密码登录', '验证码登录', '企业微信登录', '扫描二维码登录', '单点登录', '账号登录', '账号密码登录',
-  // 英文登录关键词 (全部小写)
-  'sign in', 'sign up', 'username', 'password', 'remember me', 'ldap', 'login'
-];
-
-// 增加了 sign_in (GitLab 常用) 和 oauth
+const LOGIN_KEYWORDS = ['企微扫码', '密码登录', '验证码登录', '企业微信登录', '扫描二维码登录', '单点登录', '账号登录', '账号密码登录', 'sign in', 'sign up', 'username', 'password', 'remember me', 'ldap', 'login'];
 const LOGIN_URL_RE   = /(login|sso|auth|sign_in|oauth)/i;
 
-// ── 工具函数 (修改版) ──────────────────────────────────────────────────
 function getBrowserEngine() {
   switch (BROWSER_TYPE) {
     case 'firefox': return firefox;
@@ -200,93 +69,81 @@ function getBrowserEngine() {
 
 function isLoginPage(content, url) {
   const lowerContent = content.toLowerCase();
-  
-  // 1. URL 命中登录特征
   if (LOGIN_URL_RE.test(url)) return true;
-  
-  // 2. 页面内容过短（通常是空白页或跳转页）
   if (content.trim().length < 150) return true;
-  
-  // 3. 忽略大小写匹配登录关键词
   return LOGIN_KEYWORDS.some(kw => lowerContent.includes(kw));
 }
 
 function isLoggedInContent(content, url) {
   const lowerContent = content.toLowerCase();
-  
-  // 通用登录成功判断：URL 无登录特征 + 内容足够长 + 无登录关键词
-  return !LOGIN_URL_RE.test(url)
-    && content.trim().length > 500
-    && !LOGIN_KEYWORDS.some(kw => lowerContent.includes(kw));
+  return !LOGIN_URL_RE.test(url) && content.trim().length > 500 && !LOGIN_KEYWORDS.some(kw => lowerContent.includes(kw));
 }
 
-// ── MCP Server ───────────────────────────────────────────────
 const server = new Server(
-  { name: "browse", version: "6.0.0" },
+  { name: "browse", version: "6.1.0" },
   { capabilities: { tools: {} } }
 );
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
     name: "fetch_page",
-    description: "抓取途虎 Wiki 等需要鉴权的网页。如果鉴权过期，会自动弹窗要求用户扫码登录。",
+    description: "抓取需要鉴权的网页。支持在提取文本前执行点击、输入等交互动作。如果鉴权过期，会自动弹窗要求用户扫码登录。",
     inputSchema: {
       type: "object",
       properties: {
-        url: { type: "string", description: "要抓取的 Wiki 页面 URL" }
+        url: { type: "string", description: "要抓取的网页 URL" },
+        actions: { 
+          type: "array", 
+          description: "可选。在读取页面内容前要执行的动作列表。支持: 'click' (需 selector), 'fill' (需 selector 和 value), 'wait' (需 ms), 'waitForSelector' (需 selector)。",
+          items: {
+            type: "object",
+            properties: {
+              action: { type: "string" },
+              selector: { type: "string" },
+              value: { type: "string" },
+              ms: { type: "number" }
+            }
+          }
+        }
       },
       required: ["url"],
     },
   }],
 }));
 
-// ── 核心抓取逻辑 ─────────────────────────────────────────────
 async function launchBrowser(headless) {
   const engine = getBrowserEngine();
   const launchOpts = { headless };
-  if (BROWSER_CHANNEL) {
-    launchOpts.channel = BROWSER_CHANNEL;
-  }
+  // Mac/Linux 默认不一定有 chrome，如果启动报错可以去掉 channel 配置或改为 msedge
+  if (BROWSER_CHANNEL) launchOpts.channel = BROWSER_CHANNEL;
   return engine.launch(launchOpts);
 }
 
 async function waitForLoginComplete(page) {
   console.error("🌐 监测到登录拦截，请在弹出的浏览器中扫码...");
-
-  const MAX_WAIT_MS = 5 * 60 * 1000; // 最多等 5 分钟
+  const MAX_WAIT_MS = 5 * 60 * 1000;
   const POLL_INTERVAL = 2000;
   const STABLE_REQUIRED = 2;
-
   let stableCount = 0;
   const deadline = Date.now() + MAX_WAIT_MS;
 
   while (Date.now() < deadline) {
-    // waitForTimeout 也放进 try/catch，防止页面导航时抛异常导致浏览器被关闭
     try {
       await page.waitForTimeout(POLL_INTERVAL);
       const checkContent = await page.evaluate(() => document.body.innerText);
       const checkUrl = page.url();
-
       if (isLoggedInContent(checkContent, checkUrl)) {
         stableCount++;
         console.error(`✅ 正在确认正文稳定性... (${stableCount}/${STABLE_REQUIRED})`);
         if (stableCount >= STABLE_REQUIRED) return;
-      } else {
-        stableCount = 0;
-      }
-    } catch {
-      // 页面正在跳转时 evaluate / waitForTimeout 可能报错，忽略即可
-      stableCount = 0;
-    }
+      } else { stableCount = 0; }
+    } catch { stableCount = 0; }
   }
-
-  throw new Error('等待扫码登录超时（5 分钟）');
+  throw new Error('等待扫码登录超时');
 }
 
-async function fetchPage(url, headless) {
+async function fetchPage(url, headless, actions = []) {
   const hasAuth = fs.existsSync(AUTH_PATH);
-  console.error(`[DEBUG] fetchPage called: headless=${headless}, hasAuth=${hasAuth}, url=${url}`);
-  
   const browser = await launchBrowser(headless);
 
   try {
@@ -296,29 +153,41 @@ async function fetchPage(url, headless) {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForTimeout(3000);
 
+    if (actions && Array.isArray(actions) && actions.length > 0) {
+      console.error(`[DEBUG] 正在执行 ${actions.length} 个页面交互动作...`);
+      for (const step of actions) {
+        try {
+          switch (step.action) {
+            case 'click':
+              await page.click(step.selector); break;
+            case 'fill':
+              await page.fill(step.selector, step.value); break;
+            case 'wait':
+              await page.waitForTimeout(step.ms); break;
+            case 'waitForSelector':
+              await page.waitForSelector(step.selector, { timeout: 10000 }); break;
+          }
+          await page.waitForTimeout(500); 
+        } catch (actErr) {
+          console.error(`[DEBUG] 动作执行失败 (${step.action}): ${actErr.message}`);
+        }
+      }
+    }
+
     let content = await page.evaluate(() => document.body.innerText);
     const currentUrl = page.url();
-    
-    console.error(`[DEBUG] Page loaded: url=${currentUrl}, contentLen=${content.trim().length}`);
-    console.error(`[DEBUG] isLoginPage result: ${isLoginPage(content, currentUrl)}`);
 
     if (isLoginPage(content, currentUrl)) {
-      console.error(`[DEBUG] Detected login page! headless=${headless}`);
       if (headless) {
-        console.error(`[DEBUG] Throwing NEEDS_LOGIN error`);
         await browser.close();
         throw new Error('NEEDS_LOGIN');
       }
-
-      // 非 headless：等待用户扫码
       await waitForLoginComplete(page);
-
       console.error("🎉 登录成功！正在保存凭证并抓取...");
       await page.waitForTimeout(2000);
       await context.storageState({ path: AUTH_PATH });
       content = await page.evaluate(() => document.body.innerText);
     }
-
     await browser.close();
     return content;
   } catch (err) {
@@ -327,60 +196,50 @@ async function fetchPage(url, headless) {
   }
 }
 
-// ── 工具请求处理 ─────────────────────────────────────────────
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  if (request.params.name !== "fetch_page") {
-    throw new Error("未知工具");
-  }
-
+  if (request.params.name !== "fetch_page") throw new Error("未知工具");
   const url = request.params.arguments.url;
+  const actions = request.params.arguments.actions || [];
 
   try {
-    // 1. 先尝试静默后台抓取
-    const content = await fetchPage(url, true);
+    const content = await fetchPage(url, true, actions);
     return { content: [{ type: "text", text: content }] };
   } catch (error) {
-    if (error.message !== 'NEEDS_LOGIN') {
-      return { content: [{ type: "text", text: `抓取异常: ${error.message}` }], isError: true };
-    }
+    if (error.message !== 'NEEDS_LOGIN') return { content: [{ type: "text", text: `抓取异常: ${error.message}` }], isError: true };
   }
 
   try {
-    // 2. 后台失败，唤起浏览器让用户扫码
     console.error("⚠️ 正在唤起浏览器进行手动扫码登录...");
-    const content = await fetchPage(url, false);
+    const content = await fetchPage(url, false, actions);
     return { content: [{ type: "text", text: content }] };
   } catch (uiError) {
     return { content: [{ type: "text", text: `手动登录抓取失败: ${uiError.message}` }], isError: true };
   }
 });
 
-// ── 启动 ─────────────────────────────────────────────────────
 const transport = new StdioServerTransport();
 await server.connect(transport);
-
-console.error(`🚀 途虎 Wiki 智能抓取服务已启动 (browser: ${BROWSER_TYPE}${BROWSER_CHANNEL ? '/' + BROWSER_CHANNEL : ''})`);
+console.error(`🚀 网页抓取与交互服务已启动 (browser: ${BROWSER_TYPE})`);
 EOF
 
-# 安装依赖
-echo "⏳ 正在安装 npm 依赖 (可能会花费几十秒)..."
+echo -e "\033[33m⏳ 正在安装 npm 依赖...\033[0m"
 npm install --silent
 
-# 4. 配置 OpenCode MCP (使用内联 Node.js 脚本确保安全合并 JSON)
-echo "⚙️ 正在注册 MCP 服务到 OpenCode..."
+# 4. 配置 OpenCode MCP
+echo -e "\033[33m⚙️ 正在注册 MCP 服务到 OpenCode...\033[0m"
 node -e "
 const fs = require('fs');
 const path = require('path');
-const configFile = '$CONFIG_FILE';
-const mcpDir = '$INSTALL_DIR';
+const os = require('os');
+
+const homeDir = os.homedir();
+const configFile = path.join(homeDir, '.config', 'opencode', 'opencode.json');
+const mcpDir = path.join(homeDir, '.opencode-mcp', 'browse');
 
 let config = {};
 if (fs.existsSync(configFile)) {
-  try {
-    config = JSON.parse(fs.readFileSync(configFile, 'utf8'));
-  } catch (e) {
-    console.log('  ⚠️ 现有的 opencode.json 格式有误，将覆盖重建。');
-  }
+  try { config = JSON.parse(fs.readFileSync(configFile, 'utf8')); } 
+  catch (e) { console.log('⚠️ opencode.json 格式有误，将覆盖重建。'); }
 }
 
 if (!config.mcp) config.mcp = {};
@@ -388,7 +247,8 @@ config.mcp['browse'] = {
   type: 'local',
   command: ['node', path.join(mcpDir, 'index.js')],
   enabled: true,
-  environment: {
+  environment: { 
+    // Mac/Linux 下可以注释掉下面这行使用默认 chromium，或改为 msedge 等
     BROWSER_CHANNEL: 'chrome' 
   }
 };
@@ -398,34 +258,23 @@ fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
 "
 
 # 5. 生成 open_cr Skill
-echo "🧠 正在生成 open_cr Code Review 技能..."
+echo -e "\033[33m🧠 正在生成 open_cr Code Review 技能...\033[0m"
 mkdir -p "$SKILL_DIR"
+
 cat << 'EOF' > "$SKILL_DIR/SKILL.md"
 ---
 name: open_cr
-description: 结合需求文档 URL 与代码进行深度 Code Review 的智能助手
+description: 结合需求文档 URL 与代码进行深度 Code Review 的智能助手，支持操作复杂页面
 ---
 
-# open_cr: 途虎智能 Code Review 助手
+# open_cr: 智能 Code Review 助手
 
-当用户需要你进行 Code Review，并提供了一段代码以及相关的 Wiki、GitLab Issue 或需求文档链接时，你必须遵循以下步骤：
+当用户需要进行 Code Review 并提供相关链接时，请遵循：
 
-1. **获取背景信息**：调用 `browse` 工具，传入用户提供的所有 URL，抓取需求背景、类图、ER 图或技术方案细节，以及代码逻辑。
-2. **交叉比对**：将抓取到的上下文与用户提供的代码进行严格比对，确认代码是否忠实实现了业务逻辑。
-3. **深度 Code Review**：
-   - 检查架构设计是否合理（例如：定价系统中的价格计算拦截器是否符合设计模式）。
-   - 检查代码健壮性、异常处理和边界条件。
-   - 识别潜在的安全漏洞、性能瓶颈（如慢 SQL、冗余循环）。
-4. **输出报告**：给出一份结构清晰的 Review 报告，包含“背景一致性评估”、“发现的问题（严重程度排序）”以及“改进建议代码段”。
-
-**交互示例**：
-用户："帮我用 open_cr 审核一下这个定价策略引擎的实现代码，需求方案在 https://wiki.xxx.com/pricing-engine-v2"
-代码地址，例如：https://gitlab.xxx.com/pricing-engine/blob/main/src/PriceInterceptor.java
-你：（自动调用工具抓取 URL，然后输出综合了业务逻辑和代码质量的评审报告）
+1. **获取背景**：调用 `browse` 的 `fetch_page` 工具。如果页面有折叠面板、需要切换 Tab 等，你可以传入 `actions` 数组（包含 click, wait 等）来操作页面后再读取内容。
+2. **交叉比对**：将抓取到的需求上下文与代码进行严格比对，确认代码是否忠实实现了业务逻辑。
+3. **深度评估**：检查架构设计、健壮性、异常处理及潜在安全/性能问题。
+4. **输出报告**：给出结构清晰的 Review 报告，包含“背景一致性评估”、“发现的问题”以及“改进建议”。
 EOF
 
-echo ""
-echo "✅ 安装完成！"
-echo "👉 MCP 安装路径: $INSTALL_DIR"
-echo "👉 技能配置路径: $SKILL_DIR/SKILL.md"
-echo "💡 现在你可以在 OpenCode 中直接对我说: \"帮我用 open_cr 审核一下这段代码，需求在 <Wiki链接>, 代码在 <代码链接LIST>\""
+echo -e "\033[32m✅ 安装完成！请重启 OpenCode 以加载最新工具。\033[0m"
